@@ -21,6 +21,7 @@ def init_data_file(custom_path=None):
     """
     Создает файл данных и директорию (если их нет).
     Позволяет указать кастомный путь для тестов.
+    Обрабатывает ошибки файловой системы.
     """
     path_to_use = custom_path if custom_path is not None else _get_data_path()
     
@@ -33,8 +34,8 @@ def init_data_file(custom_path=None):
             with open(path_to_use, 'w', encoding='utf-8') as f:
                 json.dump([], f)
                 
-    except OSError as e:
-        print(f"Ошибка файловой системы при инициализации: {e}")
+    except OSError as e: # Обрабатываем любые ошибки ОС (разрешения диска и т.д.)
+        print(f"Ошибка файловой системы при инициализации ({path_to_use}): {e}")
 
 def load_books(custom_path=None) -> list:
     """
@@ -57,8 +58,8 @@ def load_books(custom_path=None) -> list:
     except PermissionError as e:
         print(f"Нет прав на чтение файла {path_to_use}: {e}")
         return []
-    except Exception as e: # Общий случай для других ошибок ввода-вывода
-        print(f"Неожиданная ошибка при чтении файла {path_to_use}: {e}")
+    except OSError as e: # Обрабатываем любые ошибки ОС при чтении
+        print(f"Ошибка чтения файла {path_to_use}: {e}")
         return []
 
 def save_books(books: list, custom_path=None):
@@ -80,7 +81,7 @@ def save_books(books: list, custom_path=None):
      except TypeError as e: # Ошибка сериализации объекта в JSON
          print(f"Ошибка кодирования объектов в JSON: {e}. Объект не может быть сериализован.")
          raise
-     except OSError as e: # Ошибки ввода-вывода (например, диск переполнен)
+     except OSError as e: # Ошибки ввода-вывода (например, диск переполнен или защищен от записи)
          print(f"Ошибка ввода-вывода при сохранении в {path_to_use}: {e}")
          raise
 
