@@ -128,9 +128,9 @@ class BookTrackerApp:
        try:
            pages = int(pages_str)
            if pages <= 0:
-               raise ValueError
-       except ValueError:
-           messagebox.showerror("Ошибка", "Количество страниц должно быть положительным целым числом.")
+               raise ValueError("Количество страниц должно быть положительным.")
+       except ValueError as e:
+           messagebox.showerror("Ошибка", str(e))
            return
 
        try:
@@ -193,13 +193,21 @@ class BookTrackerApp:
        for var in [self.filter_genre_var, self.filter_pages_var]:
            var.set("")
        self.update_treeview()
-    
+
+# --- Точка входа ---
 if __name__ == "__main__":
-    # Если используется ThemedTk(), передаем его в конструктор.
-    # Если нет (ImportError), создаем обычный Tk().
     try:
-        root = themes.ThemedTk()
+        # Если импорт ttkthemes был успешным (THEMES_AVAILABLE определена и True), используем ThemedTk.
+        if 'THEMES_AVAILABLE' in globals() and THEMES_AVAILABLE:
+            root = themes.ThemedTk()
+            app = BookTrackerApp(root)  # Передаем уже созданный root
+            root.mainloop()
+        else:
+            root = tk.Tk()  # Если нет — обычный Tk.
+            app = BookTrackerApp(root)  # Передаем уже созданный root
+            root.mainloop()
     except NameError:
+        # Если THEMES_AVAILABLE не определена (например при импорте), просто создаем обычный Tk.
         root = tk.Tk()
-    app = BookTrackerApp(root)
-    root.mainloop()
+        app = BookTrackerApp(root)
+        root.mainloop()
