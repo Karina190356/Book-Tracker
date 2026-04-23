@@ -2,53 +2,92 @@ import json
 import os
 
 # Переменная для пути к папке с данными (согласовано с README)
-DATA_DIR = 'data'
-DATA_FILE = os.path.join(DATA_DIR, 'books.json')
+DATA_DIR_DEFAULT = 'data'
+DATA_FILE_DEFAULT_NAME = 'books.json'
 
-def init_data_file():
-    """Создает папку и файл данных, если их нет."""
+def _get_data_path():
+    """
+    Возвращает полный путь к файлу данных.
+    Приоритет: Переменная окружения -> Значение по умолчанию.
+    """
+    env_path = os.getenv('BOOKS_DATA_PATH')
+    if env_path:
+        return env_path
+    
+    os.makedirs(DATA_DIR_DEFAULT, exist_ok=True) # Создаем папку по умолчанию при необходимости
+    return os.path.join(DATA_DIR_DEFAULT, DATA_FILE_DEFAULT_NAME)
+
+def init_data_file(custom_path=None):
+    """
+    Создает файл данных и директорию (если их нет).
+    Позволяет указать кастомный путь для тестов.
+    """
+    path_to_use = custom_path if custom_path is not None else _get_data_path()
+    
+    dir_name = os.path.dirname(path_to_use)
+    
     try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        if not os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'w', encoding='utf-8') as f:
+        os.makedirs(dir_name, exist_ok=True)
+        
+        if not os.path.exists(path_to_use):
+            with open(path_to_use, 'w', encoding='utf-8') as f:
                 json.dump([], f)
+                
     except OSError as e:
-        print(f"Ошибка при создании директории/файла данных: {e}")
-        raise
+        print(f"Ошибка файловой системы при инициализации: {e}")
 
-def load_books() -> list:
-    """Загружает список книг из JSON-файла."""
+def load_books(custom_path=None) -> list:
+    """
+    Загружает список книг из JSON-файла.
+    Обеспечивает обработку ошибок чтения/декодирования JSON.
+    Возвращает пустой список при любой ошибке.
+    """
+    path_to_use = custom_path if custom_path is not None else _get_data_path()
+    
     try:
-        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+        with open(path_to_use, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        # Если файла нет или он поврежден, возвращаем пустой список
+            
+    except FileNotFoundError:
+        print(f"Файл данных не найден по пути {path_to_use}. Будет создан при первом сохранении.")
         return []
-    except Exception as e:
-        print(f"Неизвестная ошибка при чтении файла: {e}")
+    except json.JSONDecodeError as e:
+        print(f"Ошибка декодирования JSON в файле {path_to_use}: {e}. Файл может быть поврежден.")
+        return []
+    except PermissionError as e:
+        print(f"Нет прав на чтение файла {path_to_use}: {e}")
+        return []
+    except Exception as e: # Общий случай для других ошибок ввода-вывода
+        print(f"Неожиданная ошибка при чтении файла {path_to_use}: {e}")
         return []
 
-def save_books(books: list):
+def save_books(books: list, custom_path=None):
     """
     Сохраняет список книг в JSON-файл.
-    Обеспечивает обработку ошибок записи.
+    Обеспечивает обработку ошибок записи/кодирования JSON.
     """
+    path_to_use = custom_path if custom_path is not None else _get_data_path()
+    
     try:
-        with open(DATA_FILE, 'w', encoding='utf-8') as f:
-            json.dump(books, f, ensure_ascii=False, indent=2)
-    except PermissionError:
-        print("Ошибка: Нет прав на запись в файл. Проверьте права доступа.")
-        raise
-    except IOError as e:
-        print(f"Ошибка ввода-вывода при сохранении: {e}")
-        raise
+         with open(path_to_use, 'w', encoding='utf-8') as f:
+             json.dump(books, f, ensure_ascii=False, indent=2)
+             
+         print(f"Данные успешно сохранены в {path_to_use}")
+         
+     except PermissionError as e:
+         print(f"Ошибка: Нет прав на запись в файл {path_to_use}. Проверьте права доступа.")
+         raise # Пробрасываем ошибку дальше в main.py для показа пользователю
+     except TypeError as e: # Ошибка сериализации объекта в JSON
+         print(f"Ошибка кодирования объектов в JSON: {e}. Объект не может быть сериализован.")
+         raise
+     except OSError as e: # Ошибки ввода-вывода (например, диск переполнен)
+         print(f"Ошибка ввода-вывода при сохранении в {path_to_use}: {e}")
+         raise
 
 def generate_unique_id(existing_books: list) -> int:
-    """
-    Генерирует уникальный ID для новой книги.
-    Находит максимальный существующий ID и прибавляет 1.
-    Если список пуст, возвращает 1.
-    """
-    if not existing_books:
-        return 1
-    return max(book['id'] for book in existing_books) + 1
+     """
+     Генерирует уникальный ID для новой книги.
+     """
+     if not existing_books:
+         return 1
+     return max(book['id'] for book in existing_books) + 1
