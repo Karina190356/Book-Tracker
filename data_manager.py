@@ -1,8 +1,7 @@
 import json
 import os
 
-DATA_DIR = "data"
-DATA_FILE = os.path.join("books.json")
+DATA_FILE = "books.json"
 
 def init_data_file():
     """Создает папку и файл данных, если их нет."""
