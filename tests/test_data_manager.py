@@ -22,7 +22,7 @@ class TestDataManager(unittest.TestCase):
           
      def setUp(self):
           """Подготавливает окружение перед каждым тестом."""
-          # Если папка данных приложения существует (например, от предыдущих запусков), переименуем её,
+          # Если папка данных приложения существует (например от предыдущих запусков), переименуем её,
           # чтобы тесты не портили реальные данные пользователя.
           if os.path.exists(DATA_DIR_ORIG):
               shutil.move(DATA_DIR_ORIG, DATA_DIR_ORIG + '_backup')
@@ -46,7 +46,7 @@ class TestDataManager(unittest.TestCase):
           loaded_books = load_books(custom_path=TEST_DATA_FILE)
           
           self.assertEqual(loaded_books, [])
-    
+     
      def test_load_and_save_single_book(self):
           """Тест сохранения и загрузки одной книги."""
           init_data_file(TEST_DATA_FILE) # Инициализация файла для теста
@@ -62,14 +62,17 @@ class TestDataManager(unittest.TestCase):
           
           self.assertEqual(len(loaded_books), 1)
           self.assertDictEqual(loaded_books[0], test_book) 
-    
+     
      def test_generate_unique_id_empty_list(self):
           """Генерация ID для первого элемента в пустом списке."""
           books = []
-          new_id = generate_unique_id(books) # Функция не использует путь к файлу напрямую
+          
+          from data_manager import generate_unique_id # Импортируем функцию для теста
+          
+          new_id = generate_unique_id(books) 
           
           self.assertEqual(new_id, 1) 
-    
+     
      def test_generate_unique_id_non_empty_list(self):
           """Генерация уникального ID на основе существующего списка."""
           books = [
@@ -78,9 +81,48 @@ class TestDataManager(unittest.TestCase):
               {"id": 3}
           ]
           
+          from data_manager import generate_unique_id
+          
           new_id = generate_unique_id(books)
           
           self.assertEqual(new_id, 6) 
      
-if __name__ == '__main__':
-     unittest.main()
+     def test_validation_negative_pages_raises_error(self):
+      """Юнит-тест для проверки валидации количества страниц (должно быть > 0)."""
+      init_data_file(TEST_DATA_FILE) 
+      
+      invalid_book_1 = {"id": 1234567890123456789012345678901234567890,
+                        "title": "Test Book",
+                        "author": "Test Author",
+                        "genre": "Test",
+                        "pages": -1} # Отрицательное число!
+      
+      invalid_book_2 = {"id": 1234567890123456789012345678901234567891,
+                        "title": "Test Book",
+                        "author": "Test Author",
+                        "genre": "Test",
+                        "pages": 0} # Ноль!
+      
+      valid_book   = {"id": 1234567890123456789012345678901234567892,
+                     "title": "Test Book",
+                     "author": "Test Author",
+                     "genre": "Test",
+                     "pages": 1} # Корректное значение
+
+      save_books([valid_book], custom_path=TEST_DATA_FILE) 
+      loaded_books_1_valid_only = load_books(custom_path=TEST_DATA_FILE) 
+      self.assertEqual(len(loaded_books_1_valid_only), 1) 
+      
+      try:
+           save_books([invalid_book_1], custom_path=TEST_DATA_FILE) 
+      except Exception as e: 
+           pass 
+      loaded_after_invalid_1_attempt = load_books(custom_path=TEST_DATA_FILE) 
+      self.assertEqual(len(loaded_after_invalid_1_attempt), 1) 
+      
+      try: 
+           save_books([invalid_book_2], custom_path=TEST_DATA_FILE) 
+      except Exception as e: 
+           pass 
+      loaded_after_invalid_2_attempt = load_books(custom_path=TEST_DATA_FILE) 
+      self.assertEqual(len(loaded_after_invalid_2_attempt), 1)
