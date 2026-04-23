@@ -197,7 +197,6 @@ class BookTrackerApp:
 # --- Точка входа ---
 if __name__ == "__main__":
     try:
-        # Если импорт ttkthemes был успешным (THEMES_AVAILABLE определена и True), используем ThemedTk.
         if 'THEMES_AVAILABLE' in globals() and THEMES_AVAILABLE:
             root = themes.ThemedTk()
             app = BookTrackerApp(root)  # Передаем уже созданный root
@@ -207,7 +206,6 @@ if __name__ == "__main__":
             app = BookTrackerApp(root)  # Передаем уже созданный root
             root.mainloop()
     except NameError:
-        # Если THEMES_AVAILABLE не определена (например при импорте), просто создаем обычный Tk.
         root = tk.Tk()
         app = BookTrackerApp(root)
         root.mainloop()
