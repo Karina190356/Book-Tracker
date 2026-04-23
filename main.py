@@ -1,13 +1,31 @@
+import os
 import tkinter as tk
 from tkinter import ttk, messagebox
+
+# Попытка импортировать ttkthemes. Если не получится, используем стандартный ttk.
+try:
+    import ttkthemes as themes
+    THEMES_AVAILABLE = True
+except ImportError:
+    print("Библиотека ttkthemes не найдена. Используется стандартный стиль Tk.")
+    THEMES_AVAILABLE = False
+
 from data_manager import load_books, save_books, init_data_file, generate_unique_id
 
 class BookTrackerApp:
     def __init__(self, root):
-        self.root = root
+        # Используем тему из ttkthemes, если она доступна
+        if THEMES_AVAILABLE:
+            self.root = themes.ThemedTk()
+            self.root.get_themes()  # Получаем список тем
+            self.root.set_theme("arc")  # Устанавливаем тему "arc"
+        else:
+            self.root = root
+
         self.root.title("Book Tracker: Учёт прочитанных книг")
         self.root.geometry("800x500")
         
+        # Инициализация данных
         init_data_file()
         self.books = load_books()
         self.filtered_books = self.books.copy()
@@ -16,6 +34,10 @@ class BookTrackerApp:
         self.update_treeview()
     
     def create_widgets(self):
+        """
+        Метод для создания всех виджетов GUI.
+        Все строки внутри метода имеют одинаковый уровень отступа.
+        """
         # --- Фрейм ввода данных ---
         input_frame = ttk.LabelFrame(self.root, text="Добавить новую книгу")
         input_frame.pack(pady=10, fill='x', padx=10)
@@ -52,44 +74,44 @@ class BookTrackerApp:
         filter_frame = ttk.LabelFrame(self.root, text="Фильтрация")
         filter_frame.pack(pady=10, fill='x', padx=10)
         
-        # Фильтр по жанру
-        ttk.Label(filter_frame, text="Жанр:").grid(row=0, column=0, padx=5)
-        self.filter_genre_var = tk.StringVar()
-        self.filter_genre_entry = ttk.Entry(filter_frame, textvariable=self.filter_genre_var)
-        self.filter_genre_entry.grid(row=0, column=1, padx=5)
-        
-        # Фильтр по страницам (больше чем...)
-        ttk.Label(filter_frame, text="Страниц >").grid(row=0, column=2)
-        self.filter_pages_var = tk.StringVar()
-        self.filter_pages_entry = ttk.Entry(filter_frame, textvariable=self.filter_pages_var)
-        self.filter_pages_entry.grid(row=0, column=3)
-        
-        self.filter_btn = ttk.Button(filter_frame, text="Применить фильтр", command=self.apply_filter)
-        self.filter_btn.grid(row=0, column=4, padx=10)
-        
-        # Кнопка сброса фильтра
-        self.reset_btn = ttk.Button(filter_frame, text="Сбросить", command=self.reset_filter)
-        self.reset_btn.grid(row=0, column=5)
-        
-        # --- Таблица с книгами ---
-        columns = ("id", "title", "author", "genre", "pages")
-        
-        self.tree = ttk.Treeview(self.root, columns=columns, show='headings')
-        
-         # Настройка ширины колонок и заголовков
-         self.tree.column("id", width=30)
-         self.tree.column("title", width=200)
-         self.tree.column("author", width=150)
-         self.tree.column("genre", width=100)
-         self.tree.column("pages", width=80)
+         # Фильтр по жанру
+         ttk.Label(filter_frame, text="Жанр:").grid(row=0, column=0, padx=5)
+         self.filter_genre_var = tk.StringVar()
+         self.filter_genre_entry = ttk.Entry(filter_frame, textvariable=self.filter_genre_var)
+         self.filter_genre_entry.grid(row=0, column=1, padx=5)
          
-         self.tree.heading("id", text="ID")
-         self.tree.heading("title", text="Название")
-         self.tree.heading("author", text="Автор")
-         self.tree.heading("genre", text="Жанр")
-         self.tree.heading("pages", text="Страниц")
+         # Фильтр по страницам (больше чем...)
+         ttk.Label(filter_frame, text="Страниц >").grid(row=0, column=2)
+         self.filter_pages_var = tk.StringVar()
+         self.filter_pages_entry = ttk.Entry(filter_frame, textvariable=self.filter_pages_var)
+         self.filter_pages_entry.grid(row=0, column=3)
          
-         self.tree.pack(fill='both', expand=True, padx=10)
+         self.filter_btn = ttk.Button(filter_frame, text="Применить фильтр", command=self.apply_filter)
+         self.filter_btn.grid(row=0, column=4, padx=10)
+         
+         # Кнопка сброса фильтра
+         self.reset_btn = ttk.Button(filter_frame, text="Сбросить", command=self.reset_filter)
+         self.reset_btn.grid(row=0, column=5)
+         
+         # --- Таблица с книгами ---
+         columns = ("id", "title", "author", "genre", "pages")
+         
+         self.tree = ttk.Treeview(self.root, columns=columns, show='headings')
+         
+          # Настройка ширины колонок и заголовков
+          self.tree.column("id", width=30)
+          self.tree.column("title", width=200)
+          self.tree.column("author", width=150)
+          self.tree.column("genre", width=100)
+          self.tree.column("pages", width=80)
+          
+          self.tree.heading("id", text="ID")
+          self.tree.heading("title", text="Название")
+          self.tree.heading("author", text="Автор")
+          self.tree.heading("genre", text="Жанр")
+          self.tree.heading("pages", text="Страниц")
+          
+          self.tree.pack(fill='both', expand=True, padx=10)
     
     def add_book(self):
        """Обрабатывает добавление новой книги с валидацией."""
@@ -125,7 +147,6 @@ class BookTrackerApp:
            save_books(self.books) 
            self.update_treeview() 
 
-           # Очистка полей ввода
            for var in [self.title_var, self.author_var, self.genre_var, self.pages_var]:
                var.set("")
            
@@ -174,6 +195,11 @@ class BookTrackerApp:
        self.update_treeview()
     
 if __name__ == "__main__":
-    root = tk.Tk()
+    # Если используется ThemedTk(), передаем его в конструктор.
+    # Если нет (ImportError), создаем обычный Tk().
+    try:
+        root = themes.ThemedTk()
+    except NameError:
+        root = tk.Tk()
     app = BookTrackerApp(root)
     root.mainloop()
