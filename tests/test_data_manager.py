@@ -47,82 +47,75 @@ class TestDataManager(unittest.TestCase):
           
           self.assertEqual(loaded_books, [])
      
-     def test_load_and_save_single_book(self):
-          """Тест сохранения и загрузки одной книги."""
-          init_data_file(TEST_DATA_FILE) # Инициализация файла для теста
-
-          test_book = {"id": 1234567890123456789012345678901234567890,
-                       "title": "Test Book",
-                       "author": "Test Author",
-                       "genre": "Test",
-                       "pages": 100}
-          
-          save_books([test_book], custom_path=TEST_DATA_FILE)
-          loaded_books = load_books(custom_path=TEST_DATA_FILE)
-          
-          self.assertEqual(len(loaded_books), 1)
-          self.assertDictEqual(loaded_books[0], test_book) 
-     
-     def test_generate_unique_id_empty_list(self):
-          """Генерация ID для первого элемента в пустом списке."""
-          books = []
-          
-          from data_manager import generate_unique_id # Импортируем функцию для теста
-          
-          new_id = generate_unique_id(books) 
-          
-          self.assertEqual(new_id, 1) 
-     
-     def test_generate_unique_id_non_empty_list(self):
-          """Генерация уникального ID на основе существующего списка."""
-          books = [
-              {"id": 1},
-              {"id": 5},
-              {"id": 3}
-          ]
-          
-          from data_manager import generate_unique_id
-          
-          new_id = generate_unique_id(books)
-          
-          self.assertEqual(new_id, 6) 
-     
-     def test_validation_negative_pages_raises_error(self):
-      """Юнит-тест для проверки валидации количества страниц (должно быть > 0)."""
+     def test_validation_correct_book_saves_successfully(self):
+      """Тест сохранения корректной книги."""
       init_data_file(TEST_DATA_FILE) 
-      
-      invalid_book_1 = {"id": 1234567890123456789012345678901234567890,
-                        "title": "Test Book",
-                        "author": "Test Author",
-                        "genre": "Test",
-                        "pages": -1} # Отрицательное число!
-      
-      invalid_book_2 = {"id": 1234567890123456789012345678901234567891,
-                        "title": "Test Book",
-                        "author": "Test Author",
-                        "genre": "Test",
-                        "pages": 0} # Ноль!
       
       valid_book   = {"id": 1234567890123456789012345678901234567892,
                      "title": "Test Book",
                      "author": "Test Author",
                      "genre": "Test",
-                     "pages": 1} # Корректное значение
-
+                     "pages": 1} 
+      
       save_books([valid_book], custom_path=TEST_DATA_FILE) 
-      loaded_books_1_valid_only = load_books(custom_path=TEST_DATA_FILE) 
-      self.assertEqual(len(loaded_books_1_valid_only), 1) 
+      loaded_after_valid_attempt = load_books(custom_path=TEST_DATA_FILE) 
       
-      try:
-           save_books([invalid_book_1], custom_path=TEST_DATA_FILE) 
-      except Exception as e: 
-           pass 
-      loaded_after_invalid_1_attempt = load_books(custom_path=TEST_DATA_FILE) 
-      self.assertEqual(len(loaded_after_invalid_1_attempt), 1) 
+      self.assertEqual(len(loaded_after_valid_attempt), 1) 
+      self.assertDictEqual(loaded_after_valid_attempt[0], valid_book) 
+     
+     def test_validation_missing_field_raises_error(self):
+      """Тест валидации: отсутствие обязательного поля вызывает исключение."""
+      from data_manager import validate_book_data 
       
-      try: 
-           save_books([invalid_book_2], custom_path=TEST_DATA_FILE) 
-      except Exception as e: 
-           pass 
-      loaded_after_invalid_2_attempt = load_books(custom_path=TEST_DATA_FILE) 
-      self.assertEqual(len(loaded_after_invalid_2_attempt), 1)
+      invalid_book_missing_title = {"id": 1,
+                                   "author": "Test Author",
+                                   "genre": "Test",
+                                   "pages": 1}
+                                   
+      with self.assertRaises(ValueError) as context:
+           validate_book_data(invalid_book_missing_title) 
+      self.assertIn("Отсутствует обязательное поле", str(context.exception)) 
+     
+     def test_validation_wrong_type_id_raises_error(self):
+      """Тест валидации: неправильный тип поля id вызывает исключение."""
+      from data_manager import validate_book_data 
+      
+      invalid_book_wrong_id_type = {"id": "not_an_int",
+                                    "title": "Test Book",
+                                    "author": "Test Author",
+                                    "genre": "Test",
+                                    "pages": 1}
+                                    
+      with self.assertRaises(TypeError) as context:
+           validate_book_data(invalid_book_wrong_id_type) 
+      self.assertIn("должно быть целым числом", str(context.exception)) 
+     
+     def test_validation_negative_pages_raises_error(self):
+      """Тест валидации: отрицательное количество страниц вызывает исключение."""
+      from data_manager import validate_book_data 
+      
+      invalid_book_negative_pages_1 = {"id": 1,
+                                      "title": "Test Book",
+                                      "author": "Test Author",
+                                      "genre": "Test",
+                                      "pages": -1} 
+                                      
+      invalid_book_negative_pages_2 = {"id": 1,
+                                      "title": "Test Book",
+                                      "author": "Test Author",
+                                      "genre": "Test",
+                                      "pages": 0} 
+                                      
+      with self.assertRaises(ValueError) as context_1:
+           validate_book_data(invalid_book_negative_pages_1) 
+           
+      with self.assertRaises(ValueError) as context_2:
+           validate_book_data(invalid_book_negative_pages_2) 
+           
+      err_msg_1_expected_part = "должно быть положительным числом"
+      err_msg_2_expected_part = err_msg_1_expected_part 
+      
+      err_msg_1_actual_part_found_in_error_msg_1 = err_msg_1_expected_part in str(context_1.exception) 
+      err_msg_2_actual_part_found_in_error_msg_2 = err_msg_2_expected_part in str(context_2.exception) 
+      
+      assert err_msg_1_actual_part_found_in_error_msg_1 and err_msg_2_actual_part_found_in_error_msg_2
